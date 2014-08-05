@@ -1,4 +1,6 @@
-package icemoon.iceloader.ant;
+package icemoon.iceloader.maven;
+
+import icemoon.iceloader.tools.AbstractCrypt;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -7,27 +9,27 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.security.AlgorithmParameters;
 import java.util.logging.Logger;
+
 import javax.crypto.Cipher;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+
 import org.apache.commons.io.IOUtils;
+import org.apache.maven.plugin.AbstractMojo;
 
 public class EncryptDir extends AbstractCrypt {
 
-    private static final Logger LOG = Logger.getLogger(EncryptDir.class.getName());
+    private AbstractMojo mojo;
 
-    public static void main(String[] args) throws Exception {
-        EncryptDir ed = new EncryptDir(new File(args[0]), new File(args[1]));
-        ed.start();
-    }
-
-    EncryptDir(File sourceDir, File targetDir) throws Exception {
+    EncryptDir(File sourceDir, File targetDir, AbstractMojo mojo) throws Exception {
         super(sourceDir, targetDir);
+        this.mojo = mojo;
     }
 
     @Override
     protected void doStream(SecretKeySpec secret, File targetFile, Cipher c, File file) throws Exception {
+	mojo.getLog().info(String.format("Encrypting %s", file));
         c.init(Cipher.ENCRYPT_MODE, secret);
         AlgorithmParameters params = c.getParameters();
         byte[] iv = params.getParameterSpec(IvParameterSpec.class).getIV();
