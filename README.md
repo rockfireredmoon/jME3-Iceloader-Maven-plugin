@@ -1,4 +1,4 @@
-# Iceloader Ant
+# Iceloader Maven Plugin
 
 A Maven plugin for encrypting and indexing assets for use with the Iceloader plugin.
 
