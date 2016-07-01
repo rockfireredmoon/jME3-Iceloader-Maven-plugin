@@ -12,20 +12,8 @@ import org.apache.maven.project.MavenProject;
 /**
  * Process assets (encrypt and index).
  */
-@Mojo(name = "process-assets", threadSafe = true)
-public class AssetProcessorMojo extends AbstractMojo {
-
-	/**
-	 * Whether or not to encrypt.
-	 */
-	@Parameter(defaultValue = "false")
-	private boolean encrypt;
-
-	/**
-	 * Whether or not to index.
-	 */
-	@Parameter(defaultValue = "false")
-	private boolean index;
+@Mojo(name = "encrypt", threadSafe = true)
+public class EncryptMojo extends AbstractMojo {
 
 	/**
 	 * A custom class to use for the encryption context.
@@ -90,34 +78,19 @@ public class AssetProcessorMojo extends AbstractMojo {
 	@Parameter
 	private boolean incremental = true;
 
+	//
+
 	public void execute() throws MojoExecutionException {
 		ResourceProcessor rp = new ResourceProcessor(getLog());
-		if (encrypt) {
-			rp.setSimplePassword(simplePassword);
-			rp.setSimpleSalt(simpleSalt);
-			rp.setContext(context);
-			rp.setIncremental(incremental);
-			rp.setMagic(magic);
-			rp.setCipher(cipher);
-		}
-
-		if (encrypt) {
-			rp.setSource(source == null ? mavenProject.getBuild().getSourceDirectory() : source);
-			rp.setDestination(destination);
-			rp.encrypt();
-		}
-
-		if (index) {
-			if (!encrypt) {
-				getLog().info(
-						String.format("Creating index from output directory %s", mavenProject.getBuild().getOutputDirectory()));
-				rp.setSource(source == null ? mavenProject.getBuild().getOutputDirectory() : source);
-			} else {
-				rp.setSource(destination);
-				getLog().info(String.format("Creating index from encrypted root %s", destination));
-			}
-			rp.index();
-		}
+		rp.setSimplePassword(simplePassword);
+		rp.setSimpleSalt(simpleSalt);
+		rp.setContext(context);
+		rp.setIncremental(incremental);
+		rp.setMagic(magic);
+		rp.setCipher(cipher);
+		rp.setSource(source == null ? mavenProject.getBuild().getSourceDirectory() : source);
+		rp.setDestination(destination);
+		rp.encrypt();
 
 	}
 
