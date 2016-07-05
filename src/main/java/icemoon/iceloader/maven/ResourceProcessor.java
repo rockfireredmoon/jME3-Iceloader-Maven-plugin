@@ -29,6 +29,7 @@ public class ResourceProcessor {
 	private String[] excludes;
 	private String[] includes;
 	private boolean incremental = true;
+	private String unprocessedSource;
 
 	//
 
@@ -183,7 +184,15 @@ public class ResourceProcessor {
 					if (matches(relPath)) {
 						log.info(String.format("Indexing %s", f));
 						long lastMod = f.lastModified();
-						indexWriter.println(relPath + "\t" + lastMod + "\t" + f.length());
+						// Look for the unprocessed version if availabble						
+						String output = relPath + "\t" + lastMod + "\t" + f.length();
+						if(unprocessedSource != null) {
+							File unprocessed = new File(unprocessedSource + File.separator + relPath);
+							if(unprocessed.exists()) {
+								output += "\t" + unprocessed.length();
+							}
+						}
+						indexWriter.println(output);
 					}
 				} else if (f.isDirectory()) {
 					index(root, log, indexWriter, indexFile, relPath);
@@ -192,14 +201,13 @@ public class ResourceProcessor {
 		}
 	}
 
-	public void index() throws MojoExecutionException {
+	public void index(boolean append) throws MojoExecutionException {
 		File srcDir = new File(source);
 		try {
-			File indexFileObject = new File(srcDir, "index.dat");
-			PrintWriter indexWriter = new PrintWriter(new FileOutputStream(indexFileObject), true);
+			PrintWriter indexWriter = new PrintWriter(new FileOutputStream(destination, append), true);
 			try {
 				log.info(String.format("Creating index from root %s", source));
-				index(srcDir, log, indexWriter, indexFileObject, null);
+				index(srcDir, log, indexWriter, new File(destination), null);
 			} finally {
 				indexWriter.close();
 			}
@@ -242,6 +250,24 @@ public class ResourceProcessor {
 			System.err.println("  matches because no exclud");
 			return true;
 		}
+	}
+
+	public void archive() throws MojoExecutionException {
+
+		File destDir = new File(destination);
+		File srcDir = new File(source);
+
+		log.info(String.format("Archiving %s to %s", srcDir, destDir));
+		try {
+			ArchiveDir dir = new ArchiveDir(srcDir, destDir, log, incremental);
+			dir.start();
+		} catch (Exception ex) {
+			throw new MojoExecutionException(String.format("Failed to encrypt %s to %s", srcDir, destDir), ex);
+		}
+	}
+
+	public void setUnprocessedSource(String unprocessedSource) {
+		this.unprocessedSource = unprocessedSource;		
 	}
 
 }

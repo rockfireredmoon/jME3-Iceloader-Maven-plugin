@@ -2,6 +2,10 @@ package icemoon.iceloader.maven;
 
 import icemoon.iceloader.EncryptionContext;
 
+import java.io.File;
+import java.io.IOException;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Component;
@@ -26,6 +30,12 @@ public class AssetProcessorMojo extends AbstractMojo {
 	 */
 	@Parameter(defaultValue = "false")
 	private boolean index;
+
+	/**
+	 * Whether or not to archive.
+	 */
+	@Parameter(defaultValue = "false")
+	private boolean archive;
 
 	/**
 	 * A custom class to use for the encryption context.
@@ -76,6 +86,13 @@ public class AssetProcessorMojo extends AbstractMojo {
 	private String destination;
 
 	/**
+	 * The destination directory for archived assets / indexes
+	 * 
+	 */
+	@Parameter(defaultValue = "${project.basedir}/target/arc_assets")
+	private String archives;
+
+	/**
 	 * The project currently being build.
 	 * 
 	 * ..@parameter expression="${project}"
@@ -101,22 +118,51 @@ public class AssetProcessorMojo extends AbstractMojo {
 			rp.setCipher(cipher);
 		}
 
+		String indexFile = null;
+
 		if (encrypt) {
 			rp.setSource(source == null ? mavenProject.getBuild().getSourceDirectory() : source);
 			rp.setDestination(destination);
 			rp.encrypt();
+
+			if (index) {
+				rp.setSource(destination);
+				rp.setDestination(destination + File.separator + "index.dat");
+				rp.setUnprocessedSource(mavenProject.getBuild().getOutputDirectory());
+				getLog().info(String.format("Creating index from encrypted root %s", destination));
+				rp.index(false);
+				indexFile = rp.getDestination();
+			}
+		} else {
+			if (index) {
+				getLog().info(String.format("Creating index from output directory %s",
+						mavenProject.getBuild().getOutputDirectory()));
+				rp.setSource(source == null ? mavenProject.getBuild().getOutputDirectory() : source);
+				rp.setDestination(mavenProject.getBuild().getOutputDirectory() + File.separator + "index.dat");
+				rp.index(false);
+				indexFile = rp.getDestination();
+			}
 		}
 
-		if (index) {
-			if (!encrypt) {
-				getLog().info(
-						String.format("Creating index from output directory %s", mavenProject.getBuild().getOutputDirectory()));
-				rp.setSource(source == null ? mavenProject.getBuild().getOutputDirectory() : source);
-			} else {
+		if (archive) {
+			rp.setDestination(archives);
+			if (encrypt) {
 				rp.setSource(destination);
-				getLog().info(String.format("Creating index from encrypted root %s", destination));
+				rp.archive();
+			} else {
+				rp.setSource(mavenProject.getBuild().getOutputDirectory());
+				rp.archive();
 			}
-			rp.index();
+			if (index) {
+				rp.setDestination(new File(new File(archives), "index.dat").getAbsolutePath());
+				rp.setSource(archives);
+				try {
+					FileUtils.copyFile(new File(indexFile), new File(rp.getDestination()));
+				} catch (IOException e) {
+					throw new MojoExecutionException("Failed to copy index.", e);
+				}
+				rp.index(true);
+			}
 		}
 
 	}
