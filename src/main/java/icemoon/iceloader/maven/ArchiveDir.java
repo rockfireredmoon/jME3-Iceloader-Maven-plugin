@@ -4,7 +4,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.jar.Attributes;
+import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
 import org.apache.commons.io.IOUtils;
@@ -42,7 +46,7 @@ public class ArchiveDir extends AbstractProcessor {
 		}
 
 		if (dirCount > 0) {
-			// If there are ANY sub-directoriies, we scan it for more files to
+			// If there are ANY sub-directories, we scan it for more files to
 			// archive
 			for (File f : files) {
 				if (f.isDirectory()) {
@@ -72,11 +76,28 @@ public class ArchiveDir extends AbstractProcessor {
 			}
 
 			File[] files = file.listFiles();
-			JarOutputStream jos = new JarOutputStream(new FileOutputStream(destFile));
+			Manifest m = new Manifest();
+			m.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+			for (File f : files) {
+				Attributes attrs = new Attributes();
+				m.getEntries().put(f.getName(), attrs);
+			}
+			JarOutputStream jos = new JarOutputStream(new FileOutputStream(destFile), m);
 			try {
+				JarEntry je = new JarEntry("META-INF/INDEX.LIST");
+				jos.putNextEntry(je);
+				PrintWriter pw = new PrintWriter(jos, true);
+				pw.println("JarIndex-Version: 1.0");
+				pw.println();
+				pw.println(destFile.getName());
+				jos.closeEntry();
+
 				for (File f : files) {
 					if (f.isFile()) {
-						jos.putNextEntry(new ZipEntry(f.getName()));
+						JarEntry ze = new JarEntry(f.getName());
+						ze.setTime(f.lastModified());
+						ze.setSize(f.length());
+						jos.putNextEntry(ze);
 						FileInputStream fin = new FileInputStream(f);
 						try {
 							IOUtils.copy(fin, jos);

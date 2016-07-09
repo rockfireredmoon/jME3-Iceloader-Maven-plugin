@@ -109,6 +109,22 @@ public class AssetProcessorMojo extends AbstractMojo {
 
 	public void execute() throws MojoExecutionException {
 		ResourceProcessor rp = new ResourceProcessor(getLog());
+
+		String indexFile = null;
+
+		if (index) {
+			rp.setSource(source == null ? mavenProject.getBuild().getOutputDirectory() : source);
+			rp.setDestination(mavenProject.getBuild().getOutputDirectory() + File.separator + "index.dat");
+			rp.index(false);
+			indexFile = rp.getDestination();
+			getLog().info(String.format("REMOVEME SOURCE: %s",
+					source));
+			if (source != null) {
+				rp.setDestination(source + File.separator + "index.dat");
+				rp.index(false);
+			}
+		}
+
 		if (encrypt) {
 			rp.setSimplePassword(simplePassword);
 			rp.setSimpleSalt(simpleSalt);
@@ -117,8 +133,6 @@ public class AssetProcessorMojo extends AbstractMojo {
 			rp.setMagic(magic);
 			rp.setCipher(cipher);
 		}
-
-		String indexFile = null;
 
 		if (encrypt) {
 			rp.setSource(source == null ? mavenProject.getBuild().getSourceDirectory() : source);
@@ -130,15 +144,6 @@ public class AssetProcessorMojo extends AbstractMojo {
 				rp.setDestination(destination + File.separator + "index.dat");
 				rp.setUnprocessedSource(mavenProject.getBuild().getOutputDirectory());
 				getLog().info(String.format("Creating index from encrypted root %s", destination));
-				rp.index(false);
-				indexFile = rp.getDestination();
-			}
-		} else {
-			if (index) {
-				getLog().info(String.format("Creating index from output directory %s",
-						mavenProject.getBuild().getOutputDirectory()));
-				rp.setSource(source == null ? mavenProject.getBuild().getOutputDirectory() : source);
-				rp.setDestination(mavenProject.getBuild().getOutputDirectory() + File.separator + "index.dat");
 				rp.index(false);
 				indexFile = rp.getDestination();
 			}

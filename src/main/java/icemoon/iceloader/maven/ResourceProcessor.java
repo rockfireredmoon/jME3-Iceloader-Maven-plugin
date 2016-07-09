@@ -206,7 +206,7 @@ public class ResourceProcessor {
 		try {
 			PrintWriter indexWriter = new PrintWriter(new FileOutputStream(destination, append), true);
 			try {
-				log.info(String.format("Creating index from root %s", source));
+				log.info(String.format("Creating index from root %s to %s", source, destination));
 				index(srcDir, log, indexWriter, new File(destination), null);
 			} finally {
 				indexWriter.close();
@@ -218,18 +218,14 @@ public class ResourceProcessor {
 	}
 
 	private boolean matches(String path) {
-		System.err.println("testing " + path);
 		if (includes == null && excludes == null) {
-			System.err.println(" path matches because no excludes");
 			return true;
 		}
 
 		// Is it excluded?
 		if (excludes != null) {
-			System.err.println(" testing exclude");
 			for (String p : excludes) {
 				if (SelectorUtils.matchPath(p, path)) {
-					System.err.println("  doesnt match " + p);
 					return false;
 				}
 			}
@@ -237,17 +233,13 @@ public class ResourceProcessor {
 
 		// Not excluded, is it included?
 		if (includes != null) {
-			System.err.println(" testing include");
 			for (String p : includes) {
 				if (SelectorUtils.matchPath(p, path)) {
-					System.err.println("  match " + p);
 					return true;
 				}
 			}
-			System.err.println("  doesnt match at all");
 			return false;
 		} else {
-			System.err.println("  matches because no exclud");
 			return true;
 		}
 	}
